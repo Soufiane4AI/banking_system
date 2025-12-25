@@ -1,7 +1,6 @@
-#ifndef BANQUE_SYSTEM_ACREATION_H
-#define BANQUE_SYSTEM_ACREATION_H
+#ifndef BANQUE_SYSTEM_NEW_ACCOUNT_H
+#define BANQUE_SYSTEM_NEW_ACCOUNT_H
 
-#include <mysql.h>
 #include "interface.h"
 
 typedef struct Client
@@ -13,7 +12,7 @@ typedef struct Client
 
 char* generer_n_compte(MYSQL *conn);
 char* generer_mdp(void);
-void client_info(MYSQL *conn, Client *C);
+int client_info(MYSQL *conn, Client *C);
 Client* creer_client(void);
 void inserer_client_db(MYSQL *conn,Client *C);
 void creer_compte(MYSQL *conn, ActiveSession *session);
