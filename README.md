@@ -2,6 +2,8 @@
 Ce projet académique vise à développer un système de gestion bancaire en C connecté à MySQL, permettant aux clients d'effectuer des opérations financières (virements, dépôts, retraits) et de gérer leurs comptes, ainsi qu'aux administrateurs de superviser l'ensemble du système.
 
 
+
+
 Avant de lancer l'application, assurez-vous de :
 1. Avoir un serveur MySQL actif.
 2. Avoir importé le script 'banque_system.sql' (création de la base 'banque_system').
