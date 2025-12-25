@@ -143,7 +143,7 @@ int effectuer_retrait_depot(MYSQL *conn, ActiveSession *session, double montant,
     solde_actuel = atof(row[0]);
     mysql_free_result(result);
 
-    if (solde_actuel < montant) {
+    if (retrait_depot==0 && solde_actuel < montant) {
         mysql_query(conn, "ROLLBACK");
         printf("Solde insuffisant. Solde actuel: %.2f DH\n", solde_actuel);
         return 0;
@@ -196,89 +196,45 @@ int effectuer_retrait(MYSQL *conn, ActiveSession *session, double montant) {
 }
 
 
-void afficher_releve(MYSQL *conn, char *mon_compte) {
-    char query[2048];  
+// fonction pour afficher le relevé bancaire
+
+void afficher_releve(MYSQL *con, char *mon_compte) {
+    char query[1024];
+    MYSQL_RES *result;
     MYSQL_ROW row;
 
-    // Requête modifiée pour inclure les opérations sortantes et entrantes
     sprintf(query,
-            "SELECT date, type_op, amount, COALESCE(account_to, 'Guichet Automatique') AS dest, 'out' AS direction "
+            "SELECT date, type_op, amount, COALESCE(account_to, 'Guichet Automatique') "
             "FROM operations "
             "WHERE account_from = '%s' "
-            "UNION ALL "
-            "SELECT date, 'RECU' AS type_op, amount, account_from AS dest, 'in' AS direction "
-            "FROM operations "
-            "WHERE account_to = '%s' "
             "ORDER BY date DESC",
-            mon_compte, mon_compte);
+            mon_compte);
 
-    if (mysql_query(conn, query)) {
-        return;
-    }
-    MYSQL_RES *result = mysql_store_result(conn);
+    if (mysql_query(con, query)) 
+    return;
+    result = mysql_store_result(con);
+
     if (result == NULL) {
+        fprintf(stderr, "Un probleme dans le systeme !\n");
         return;
     }
-
+ 
     printf("\n");
-    printf("===============================================================================\n");
-    printf("                                 RELEVE BANCAIRE:\n");
-    printf("===============================================================================\n");
-    printf("| %-20s | %-15s | %-11s | %-20s |\n", "DATE", "OPERATION", "MONTANT", "DESTINATAIRE");
-    printf("|----------------------|-----------------|-------------|----------------------|\n");
+    printf("==================================================================================\n");
+    printf("   RELEVE BANCAIRE : %s\n", mon_compte);
+    printf("==================================================================================\n");
+    printf("| %-22s | %-15s | %-12s | %-20s |\n", "DATE", "OPERATION", "MONTANT", "DESTINATAIRE");
+    printf("|------------------------|-----------------|--------------|----------------------|\n");
 
     while ((row = mysql_fetch_row(result))) {
-        // Pour les opérations entrantes, afficher "recu" suivi du compte expéditeur et du montant
-        if (strcmp(row[4], "in") == 0) {  // direction 'in'
-            printf("| %-20s | %-15s | %-8s DH | %-20s |\n",
-                   row[0], "recu", row[2], row[3]);  // row[3] est account_from pour les entrantes
-        } else {
-            printf("| %-20s | %-15s | %-8s DH | %-20s |\n",
-                   row[0], row[1], row[2], row[3]);
-        }
+        printf("| %-22s | %-15s | %-9s DH | %-20s |\n",
+               row[0], row[1], row[2], row[3]);
     }
-    printf("================================================================================\n");
+
+    printf("==================================================================================\n\n");
+
     mysql_free_result(result);
 }
-
-
-// void afficher_releve(MYSQL *con, char *mon_compte) {
-//     char query[1024];
-//     MYSQL_RES *result;
-//     MYSQL_ROW row;
-
-//     sprintf(query,
-//             "SELECT date, type_op, amount, COALESCE(account_to, 'Guichet Automatique') "
-//             "FROM operations "
-//             "WHERE account_from = '%s' "
-//             "ORDER BY date DESC",
-//             mon_compte);
-
-//     if (mysql_query(con, query)) 
-//     return;
-//     result = mysql_store_result(con);
-
-//     if (result == NULL) {
-//         fprintf(stderr, "Un probleme dans le systeme !\n");
-//         return;
-//     }
- 
-//     printf("\n");
-//     printf("==================================================================================\n");
-//     printf("   RELEVE BANCAIRE : %s\n", mon_compte);
-//     printf("==================================================================================\n");
-//     printf("| %-22s | %-15s | %-12s | %-20s |\n", "DATE", "OPERATION", "MONTANT", "DESTINATAIRE");
-//     printf("|------------------------|-----------------|--------------|----------------------|\n");
-
-//     while ((row = mysql_fetch_row(result))) {
-//         printf("| %-22s | %-15s | %-9s DH | %-20s |\n",
-//                row[0], row[1], row[2], row[3]);
-//     }
-
-//     printf("==================================================================================\n\n");
-
-//     mysql_free_result(result);
-// }
 
 
 // fonction pour Modifier les informations personnelles
