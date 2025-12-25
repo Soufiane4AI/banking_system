@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <mysql.h>
-#include "acreation.h"
+#include "new_account.h"
 #include "interface.h"
 
 
@@ -60,11 +60,13 @@ char* generer_mdp(void) {
     return mdp;
 }
 
-// fonction pour saisir les données du client
+// fonction pour saisir les données du client retourne 1 si tous est passé correctement
 
-void client_info(MYSQL *conn, Client *C) {
-    char *n_compte = generer_n_compte(conn);
-    char *mdp = generer_mdp();
+int client_info(MYSQL *conn, Client *C) {
+    char *n_compte;
+    char *mdp;
+    char query[256];
+    MYSQL_RES *result;
 
     printf("Veuillez entrer le Prenom : ");
     scanf(" %[^\n]", C->prenom);
@@ -74,7 +76,7 @@ void client_info(MYSQL *conn, Client *C) {
     getchar() ;   
     printf("Veuillez entrer la CIN : ");
     scanf(" %[^\n]", C->CIN);
-    getchar();  
+    getchar();
     printf("Veuillez entrer la Date de naissance : ");
     scanf(" %[^\n]", C->date_naissance);
     getchar();
@@ -83,24 +85,44 @@ void client_info(MYSQL *conn, Client *C) {
     getchar();
     printf("Veuillez entrer un Adresse : ");
     scanf(" %[^\n]", C->adresse);
-    getchar();
+    getchar(); 
 
-    if (n_compte == NULL || mdp == NULL) {
+    sprintf(query, "SELECT CIN FROM client WHERE CIN = '%s'", C->CIN);
+    
+    if (mysql_query(conn, query)) {
         printf("Un probleme dans le systeme !\n");
-        free(n_compte);
-        free(mdp);
+        return 0;
+    }   
+    result = mysql_store_result(conn);
+
+    if (mysql_num_rows(result) == 0){
+        n_compte = generer_n_compte(conn);
+        mdp = generer_mdp();
+        mysql_free_result(result);
+        if (n_compte == NULL || mdp == NULL) {
+            printf("Un probleme dans le systeme !\n");
+            free(n_compte);
+            free(mdp);
+            return 0;
+        }else {
+            strcpy(C->n_compte, n_compte);
+            strcpy(C->mdp, mdp);
+            printf("\n========================================\n");
+            printf("   COMPTE CREE AVEC SUCCES !\n");
+            printf("========================================\n");
+            printf("Numero de compte: %s\n", n_compte);
+            printf("Mot de passe: %s\n", mdp);
+            printf("========================================\n\n");
+            free(n_compte);
+            free(mdp);
+            return 1; 
+        }
     }else {
-        strcpy(C->n_compte, n_compte);
-        strcpy(C->mdp, mdp);
-        printf("\n========================================\n");
-        printf("   COMPTE CREE AVEC SUCCES !\n");
-        printf("========================================\n");
-        printf("Numero de compte: %s\n", n_compte);
-        printf("Mot de passe: %s\n", mdp);
-        printf("========================================\n\n");
-        free(n_compte);
-        free(mdp);
+        printf("\n CIN existe deja . Impossible de creer un compte avec ce CIN .\n");
+        mysql_free_result(result);
+        return 0;
     }
+
 }
 
 // fonction pour créer un nouveau client
@@ -138,18 +160,22 @@ void creer_compte(MYSQL *conn, ActiveSession *session) {
     printf("\n--- CREATION DE COMPTE ---\n\n");
 
     if (C != NULL) {
-        client_info(conn, C);
+        if (!client_info(conn, C)) {         // Si la création a échoué (CIN existe ou erreur)
+            free(C);
+            return; 
+        }
+        
         inserer_client_db(conn, C);
 
-        printf("Voulez-vous continuer ?\n");
-        printf("1. Entrer au compte\n");
-        printf("\nAppuyez sur Entree pour quitter ! ");
-        getchar();
+        printf("Voulez-vous continuez ?\n");
+        printf("Tapez 1 pour entrer au compte\n");
+        printf("Tapez autre caractere pour quitter...\n");
         printf("-----------------------------------\n");
         printf("Votre choix : ");
         scanf("%d", &choix);
+        while(getchar() != '\n');
 
-        if (choix != '1') {
+        if (choix != 1) {
             printf("\n===================================\n");
             printf("Merci d'avoir choisi notre banque !\n");
             printf("Au revoir !\n");
@@ -164,11 +190,11 @@ void creer_compte(MYSQL *conn, ActiveSession *session) {
                 free(C);
                 menu_utilisateur(conn, session);
             } else {
-                printf("\nImpossible de se connecter au nouveau compte,Reessayer Apres! \n");
+                printf("\nImpossible de se connecter au nouveau compte,Reessayer plutard! \n");
                 free(C);
             }
         }
-    }else{return;}
+    }else {
+        printf("Un probleme dans le systeme ! \n");
+    }
 }
-
-
