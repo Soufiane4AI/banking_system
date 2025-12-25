@@ -5,7 +5,6 @@
 #include "interface.h"
 
 
-
 int effectuer_transaction(MYSQL *conn, ActiveSession *session, char *compte_dest, double montant);
 int effectuer_retrait_depot(MYSQL *conn, ActiveSession *session, double montant,int retrait_depot);
 int effectuer_depot(MYSQL *conn, ActiveSession *session, double montant);
